@@ -1,0 +1,6 @@
+.vscode/
+assets/
+node_modules/
+config.js
+*.exe
+*.bat

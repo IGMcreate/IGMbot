@@ -1,0 +1,48 @@
+const { default: axios } = require('axios');
+const { ApplicationCommandOptionType } = require('discord.js');
+
+module.exports = {
+    name: 'accessories',
+    description: "returns players accessories for the selected profile",
+    options: [
+        {
+            name: 'player',
+            description: "player whose profile's accessories are to be displayed",
+            type: ApplicationCommandOptionType.String,
+            required: true,
+        },
+        {
+            name: 'profile',
+            description: 'profile to be displayed',
+            type: ApplicationCommandOptionType.String,
+            required: true,
+        }
+    ],
+    async execute({ inter, client }) {
+        const player = inter.options.getString('player');
+        const profile = (inter.options.getString('profile')).toLowerCase();
+
+        const hypixel_key = client.config.app.hypixel_api_token
+
+        try {
+
+            const { data: MojangData } = await axios.get(`https://api.mojang.com/users/profiles/minecraft/${player}`);
+            const uuid = MojangData.id;
+            const { data: HypixelData } = await axios.get(`https://api.hypixel.net/v2/skyblock/profiles?key=${hypixel_key}&uuid=${uuid}`)
+
+
+
+            if (!HypixelData.profiles || HypixelData.profiles.length === 0) {
+                return inter.editReply(`No profiles found for ${player}.`);
+            }
+
+            const playerProfile = HypixelData.profiles.find(p => p.cute_name.toLowerCase() === profile);
+            if (!playerProfile) {
+                return inter.editReply(`No profile found with the name ${profile} for ${player}.`);
+            }
+
+        } catch {
+            inter.editReply('error')
+        }
+    },
+};
