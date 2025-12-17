@@ -39,6 +39,10 @@
 // require('./src/loader');
 
 // client.login(client.config.app.token);
+
+import dotenv from 'dotenv';
+dotenv.config({ path: '.env' })
+console.log(process.env.DISCORD_TOKEN)
 import { Client, GatewayIntentBits } from 'discord.js';
 import { Player } from 'discord-player';
 import Genius from 'genius-lyrics';
@@ -47,7 +51,6 @@ import config from './config.js';
 
 console.log(`Starting bot process PID=${process.pid} at ${new Date().toISOString()}`);
 
-// --- Initialize global client ---
 global.client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -55,16 +58,15 @@ global.client = new Client({
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.GuildVoiceStates,
         GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildPresences,
     ],
     disableMentions: 'everyone',
 });
 
-// Global config and utilities
 global.client.config = config;
 global.player = new Player(global.client, global.client.config.opt.discordPlayer);
 global.genius = new Genius.Client();
 
-// --- Register YouTube extractor ---
 await global.player.extractors.register(YoutubeiExtractor, {
     innertubeConfigRaw: {
         player_id: '0004de42',
@@ -72,10 +74,8 @@ await global.player.extractors.register(YoutubeiExtractor, {
 });
 console.log('YoutubeiExtractor registered with default settings');
 
-// --- Load API and Loader ---
-//await import('./src/api.js');
+
 await import('./src/loader.js');
 
-// --- Login client ---
 await global.client.login(global.client.config.app.token);
 console.log(`Logged in as ${global.client.user.tag}!`);

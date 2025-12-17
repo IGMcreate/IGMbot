@@ -85,19 +85,14 @@ import { readdirSync } from 'fs';
 import { Collection } from 'discord.js';
 import { useMainPlayer } from 'discord-player';
 
-console.log(`Starting bot process PID=${process.pid} at ${new Date().toISOString()}`);
-
-// Make sure the client exists
 if (!global.client) throw new Error("global.client is not defined. Make sure you initialize it before this loader.");
 
-// Initialize commands collection
 global.client.commands = new Collection();
 global.CommandsArray = [];
 
-// Get main player
 const player = useMainPlayer();
 
-// --- Load Discord events ---
+//load discord events
 const DiscordEvents = readdirSync('./events/Discord/').filter(file => file.endsWith('.js'));
 for (const file of DiscordEvents) {
     const { default: DiscordEvent } = await import(`../events/Discord/${file}`);
@@ -105,7 +100,7 @@ for (const file of DiscordEvents) {
     global.client.on(file.split('.')[0], DiscordEvent.bind(null, global.client));
 }
 
-// --- Load Player events ---
+//load player events
 const PlayerEvents = readdirSync('./events/Player/').filter(file => file.endsWith('.js'));
 for (const file of PlayerEvents) {
     const { default: PlayerEvent } = await import(`../events/Player/${file}`);
@@ -113,7 +108,7 @@ for (const file of PlayerEvents) {
     player.events.on(file.split('.')[0], PlayerEvent.bind(null));
 }
 
-// --- Load Commands ---
+//load commands
 for (const dirs of readdirSync('./commands/')) {
     const commands = readdirSync(`./commands/${dirs}`).filter(file => file.endsWith('.js'));
     for (const file of commands) {
@@ -137,7 +132,7 @@ for (const dirs of readdirSync('./commands/')) {
     }
 }
 
-// --- Ready handler ---
+//ready
 global.client.on('ready', async () => {
     console.log(`Logged in as ${global.client.user.tag}!`);
 

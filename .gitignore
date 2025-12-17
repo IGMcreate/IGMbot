@@ -4,3 +4,5 @@ node_modules/
 config.js
 *.exe
 *.bat
+*.lnk
+.env
