@@ -1,23 +1,12 @@
-// const { EmbedBuilder } = require('discord.js');
+const { EmbedBuilder } = require('discord.js');
 
-// module.exports = (queue, error) => {
+module.exports = (queue, error) => {
     
-//     const ErrorEmbed = new EmbedBuilder()
-//     .setAuthor({name: `Bot had an unexpected error, please check the console!`, iconURL: track.thumbnail})
-//     .setColor('#EE4B2B')
-    
-// queue.metadata.send({ embeds: [ErrorEmbed] })
-
-// console.log(`Error emitted from the Bot ${error.message}`);
-// }
-import { EmbedBuilder } from 'discord.js';
-
-export default (queue, error) => {
     const ErrorEmbed = new EmbedBuilder()
-        .setAuthor({ name: `Bot had an unexpected error, please check the console!` })
-        .setColor('#EE4B2B');
+    .setAuthor({name: `Bot had an unexpected error, please check the console!`, iconURL: track.thumbnail})
+    .setColor('#EE4B2B')
+    
+queue.metadata.send({ embeds: [ErrorEmbed] })
 
-    queue.metadata.send({ embeds: [ErrorEmbed] });
-
-    console.log(`Error emitted from the Bot: ${error.message}`);
-};
+console.log(`Error emitted from the Bot ${error.message}`);
+}

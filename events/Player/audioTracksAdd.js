@@ -1,23 +1,12 @@
-// const { EmbedBuilder } = require('discord.js');
+const { EmbedBuilder } = require('discord.js');
 
-// module.exports = (queue, track) => {
-//     if (!client.config.app.ExtraMessages) return
-
-//     const audioTracksAdd = new EmbedBuilder()
-//     .setAuthor({name: `All the songs in playlist added into the queue `})
-//     .setColor('#2f3136')
-
-// queue.metadata.send({ embeds: [audioTracksAdd] })
-
-// }
-import { EmbedBuilder } from 'discord.js';
-
-export default (queue, track) => {
-    if (!global.client.config.app.ExtraMessages) return;
+module.exports = (queue, track) => {
+    if (!client.config.app.ExtraMessages) return
 
     const audioTracksAdd = new EmbedBuilder()
-        .setAuthor({ name: `All the songs in playlist added into the queue` })
-        .setColor('#2f3136');
+    .setAuthor({name: `All the songs in playlist added into the queue `})
+    .setColor('#2f3136')
 
-    queue.metadata.send({ embeds: [audioTracksAdd] });
-};
+queue.metadata.send({ embeds: [audioTracksAdd] })
+
+}
