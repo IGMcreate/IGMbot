@@ -1,5 +1,9 @@
+const {
+    getVoiceConnection
+} = require('@discordjs/voice');
+
 const { EmbedBuilder } = require('discord.js');
-const { useMainPlayer, useQueue } = require('discord-player');
+const { getQueue } = require('../../src/queueStore');
 
 module.exports = {
     name: 'skip',
@@ -7,17 +11,18 @@ module.exports = {
     voiceChannel: true,
 
     async execute({ inter }) {
-        const player = useMainPlayer()
-        const queue = useQueue(inter.guildId);
+        const channel = inter.member.voice.channel;
+        const connection = getVoiceConnection(channel.guild.id);
+        const queue = getQueue(channel.guild.id, connection);
 
-        //console.log(queue)
+        console.log(queue)
         if (!queue || !queue.isPlaying()) return await inter.editReply({ content: `No music currently playing ${inter.member}... try again ? `, ephemeral: true });
 
-        const success = queue.node.skip();
+        queue.skip();
 
         const SkipEmbed = new EmbedBuilder()
             .setColor('#2f3136')
-            .setAuthor({ name: success ? `Current music ${queue.currentTrack.title} skipped ` : `Something went wrong ${inter.member}... try again ? ` })
+            .setAuthor(`Current music ${queue.currentTrack.title} skipped ` )
 
 
         await inter.editReply({ embeds: [SkipEmbed] });

@@ -1,10 +1,11 @@
-const { Player } = require('discord-player');
-const { DefaultExtractors } = require('@discord-player/extractor');
+require('dotenv').config()
 const Genius = require("genius-lyrics");
 const { Client, GatewayIntentBits } = require('discord.js');
-const { YoutubeiExtractor, generateOauthTokens } = require('discord-player-youtubei');
-const { YoutubeSabrExtractor } = require('discord-player-googlevideo');
+const { execFile } = require('child_process');
+const path = require('path');
+const { generateDependencyReport } = require('@discordjs/voice');
 
+console.log(generateDependencyReport());
 
 global.client = new Client({
     intents: [
@@ -18,24 +19,8 @@ global.client = new Client({
 });
 
 client.config = require('./config');
-const player = new Player(client, client.config.opt.discordPlayer);
+
 global.genius = new Genius.Client();
-player.extractors.register(YoutubeSabrExtractor);
-// player.extractors.register(YoutubeiExtractor, {
-//     //authentication: client.config.app.access_token,
-//     innertubeConfigRaw: {
-//         player_id: '0004de42'
-//     }
-//     // streamOptions: {
-//     //     useClient: "",
-//     //     //useClient: "IOS"
-//     //     //useClient: "WEB"
-//     //     //useClient: "TV_EMBEDDED"
-//     //     //useClient: "WEB_EMBEDDED",
-//     // },
-//     // generateWithPoToken: true,
-// });
-// console.log('YoutubeiExtractor registered with default settings');
 
 //require('./src/api')
 require('./src/loader');
