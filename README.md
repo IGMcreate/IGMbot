@@ -1,7 +1,5 @@
 # Music-bot
 
-Dont forget - https://www.youtube.com/iframe_api
-
 # Configuration
 
 The main folder `config.js`.
@@ -68,7 +66,9 @@ Advanced configuration
 ###  Installation
 [FFmpeg](https://www.ffmpeg.org)
 
-[Node JS](https://nodejs.org/en/) v16.9 or newer for environment
+[yt-dlp](https://github.com/yt-dlp/yt-dlp)
+
+[Node JS](https://nodejs.org/en/) v22 or newer for environment
 
 [visual studio code](https://code.visualstudio.com/) 
 
