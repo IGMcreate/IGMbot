@@ -10,7 +10,6 @@ const {
 
 const { spawn, execFile } = require('child_process');
 const path = require('path');
-
 const YTDLP = path.join(__dirname, '../yt-dlp.exe');
 
 class MusicQueue {
@@ -48,14 +47,19 @@ class MusicQueue {
         return new Promise((resolve, reject) => {
             execFile(YTDLP, [
                 '--flat-playlist',
-                '--print', 'url',
+                '--print', '%(title)s|||%(url)s',
                 '--no-abort-on-error',
                 url
             ], (err, stdout) => {
                 if (err) return reject(err);
-                const urls = stdout.split('\n').map(v => v.trim()).filter(v => v && v !== 'NA');
-                if (urls.length === 0) return resolve([url]);
-                resolve(urls);
+                //console.log(stdout);
+                const results = stdout.split('\n').map(v => v.trim()).filter(v => v && v !== 'NA|||NA');
+                const objects = results.map(line => {
+                    const [title, url] = line.split('|||');
+                    return { title, url };
+                });
+                if (objects.length === 1) return resolve([{ title: objects[0].title, url: url }]);
+                resolve(objects);
             });
         });
     }
@@ -97,13 +101,20 @@ class MusicQueue {
         return stream;
     }
 
-    async add(url) {
+    async add(url, type) {
+        let guild = client.guilds.cache.get(this.connection.joinConfig.guildId);
+        let channel = guild.channels.cache.find(channel => channel.name === 'music');
+
         console.log('[QUEUE] add():', url);
         try {
             const urls = await this.getPlaylistUrls(url);
             console.log(`[QUEUE] Added ${urls.length} track(s)`);
-            
-            this.queue.push(...urls);
+            channel.send(`Added ${urls.length} track(s) to the queue!`).catch(console.error);
+            if (type === 'end') {
+                this.queue.push(...urls);
+            } else if (type === 'start') {
+                this.queue.unshift(...urls);
+            }
 
             if (!this.playing) {
                 this.next();
@@ -124,33 +135,40 @@ class MusicQueue {
     async next() {
         console.log('[NEXT] Called');
 
+        let guild = client.guilds.cache.get(this.connection.joinConfig.guildId);
+        let channel = guild.channels.cache.find(channel => channel.name === 'music');
+
         if (this.queue.length === 0) {
             this.playing = false;
             this.current = null;
             return;
         }
 
-        const url = this.queue.shift();
-        this.current = url;
+        const track = this.queue.shift();
+        this.current = track;
         this.playing = true;
 
-        console.log('[NEXT] Playing:', url);
+        console.log('[NEXT] Playing:', track.title);
 
-        const stream = await this.createStream(url);
+        channel.send('Now playing: ' + track.title)
+            .then(message => console.log(`Sent message: ${message.content}`))
+            .catch(console.error);
 
-        const resource = createAudioResource(stream, {
-            inputType: StreamType.OggOpus
-        });
+        try {
+            // Use track.url for the actual downloader
+            const stream = await this.createStream(track.url);
+            const resource = createAudioResource(stream, { inputType: StreamType.OggOpus });
 
-        if (!this.subscribed) {
-            console.log('[VOICE] subscribing player');
-            this.connection.subscribe(this.player);
-            this.subscribed = true;
+            if (!this.subscribed) {
+                this.connection.subscribe(this.player);
+                this.subscribed = true;
+            }
+
+            this.player.play(resource);
+        } catch (err) {
+            console.error('[NEXT ERROR] Skipping:', track.title, err);
+            this.next();
         }
-
-        this.player.play(resource);
-
-        console.log('[NEXT] audio started');
     }
 
     skip() {
@@ -166,8 +184,13 @@ class MusicQueue {
         this.current = null;
     }
 
-    isPlaying() {
-        return this.playing;
+    shuffle() {
+        for (var i = this.queue.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var temp = this.queue[i];
+            this.queue[i] = this.queue[j];
+            this.queue[j] = temp;
+        }
     }
 }
 

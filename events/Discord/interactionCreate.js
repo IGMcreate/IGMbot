@@ -13,7 +13,7 @@ module.exports = async (client, inter) => {
         if (!command) return inter.editReply({
             embeds: [new EmbedBuilder().setColor('#ff0000').setDescription('Error!')],
             ephemeral: true
-        }), client.slash.delete(inter.commandName);
+        });//, client.slash.delete(inter.commandName);
 
         if (command.permissions && !inter.member.permissions.has(command.permissions)) {
             return inter.editReply({

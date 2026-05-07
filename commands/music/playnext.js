@@ -7,8 +7,8 @@ const { ApplicationCommandOptionType, EmbedBuilder } = require('discord.js');
 const { getQueue } = require('../../src/queueStore');
 
 module.exports = {
-    name: 'play',
-    description: "play a song!",
+    name: 'playnext',
+    description: "play a song at the start of the queue!",
     voiceChannel: true,
     options: [
         {
@@ -36,7 +36,7 @@ module.exports = {
 
         const queue = getQueue(channel.guild.id, connection);
         //await queue.testYTDLP(query);
-        await queue.add(query, 'end');
+        await queue.add(query, 'start');
         // await testVoice(inter.member.voice.channel);
         // return;
 
