@@ -1,3 +1,4 @@
+const queue = require('../commands/music/queue');
 const MusicQueue = require('./musicQueue');
 
 const queues = new Map();
@@ -7,7 +8,12 @@ function getQueue(guildId, connection) {
         queues.set(guildId, new MusicQueue(connection));
     }
 
-    return queues.get(guildId);
+    const queue = queues.get(guildId);
+    if (connection && queue.connection !== connection) {
+        queue.connection = connection;
+        queue.subscribed = false;
+    }
+    return queue
 }
 
 function deleteQueue(guildId) {

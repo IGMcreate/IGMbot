@@ -14,10 +14,11 @@ module.exports = {
 
         const channel = inter.member.voice.channel;
         const connection = getVoiceConnection(channel.guild.id);
+        if (!connection) return inter.editReply({ content: `Try playing a song first :) ${inter.member}`, ephemeral: true });
         const queue = getQueue(channel.guild.id, connection);
 
         if (!queue || !queue.playing) return await inter.editReply({ content: `No music currently playing ${inter.member}... try again ? `, ephemeral: true });
-        console.log(queue.queue)
+        //console.log(queue.queue)
         if (!queue.queue[0]) return inter.editReply({ content: `No music in the queue after the current one ${inter.member}... try again ? `, ephemeral: true });
 
         await queue.shuffle();

@@ -10,6 +10,7 @@ const {
 
 const { spawn, execFile } = require('child_process');
 const path = require('path');
+const { deleteQueue } = require('./queueStore');
 const YTDLP = path.join(__dirname, '../yt-dlp.exe');
 
 class MusicQueue {
@@ -28,10 +29,18 @@ class MusicQueue {
         this.current = null;
         this.playing = false;
         this.subscribed = false;
+        this.subscription = null;
+        this.idleTimeout = null;
 
         this.player.on(AudioPlayerStatus.Idle, () => {
             console.log('[PLAYER] Idle → next()');
-            this.next();
+            if (this.queue.length > 0) {
+                this.next();
+            } else {
+                this.playing = false;
+                this.current = null;
+                this.scheduleIdleStop();
+            }
         });
 
         this.player.on('error', (err) => {
@@ -116,6 +125,7 @@ class MusicQueue {
                 this.queue.unshift(...urls);
             }
 
+            this.clearIdleStop();
             if (!this.playing) {
                 this.next();
             }
@@ -141,6 +151,7 @@ class MusicQueue {
         if (this.queue.length === 0) {
             this.playing = false;
             this.current = null;
+            this.player.stop();
             return;
         }
 
@@ -160,7 +171,7 @@ class MusicQueue {
             const resource = createAudioResource(stream, { inputType: StreamType.OggOpus });
 
             if (!this.subscribed) {
-                this.connection.subscribe(this.player);
+                this.subscription = this.connection.subscribe(this.player);
                 this.subscribed = true;
             }
 
@@ -176,12 +187,55 @@ class MusicQueue {
         this.next();
     }
 
+    scheduleIdleStop() {
+        this.clearIdleStop();
+        this.idleTimeout = setTimeout(() => {
+            if (this.player.state.status === AudioPlayerStatus.Idle && this.queue.length === 0) {
+                console.log('[QUEUE] Idle timeout reached, stopping queue');
+                this.stop();
+            }
+        }, 30_000);
+    }
+
+    clearIdleStop() {
+        if (this.idleTimeout) {
+            clearTimeout(this.idleTimeout);
+            this.idleTimeout = null;
+        }
+    }
+
+    pauseState(type) {
+        return new Promise((resolve, reject) => {
+            if (type === 'pause') {
+                console.log('[QUEUE] pause');
+                //this.player.pause();
+                resolve(this.player.pause());
+            } else if (type === 'resume') {
+                console.log('[QUEUE] resume');
+                //this.player.resume();
+                resolve(this.player.unpause());
+            } else {
+                reject('invalid type');
+            }
+        }
+        );
+    }
+
     stop() {
         console.log('[QUEUE] stop');
+        this.clearIdleStop();
         this.queue = [];
-        this.player.stop();
         this.playing = false;
         this.current = null;
+
+        if (this.subscription) {
+            this.subscription.unsubscribe();
+            this.subscription = null;
+        }
+
+        this.subscribed = false;
+        this.player.stop();
+        this.connection.destroy();
     }
 
     shuffle() {

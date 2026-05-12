@@ -23,7 +23,6 @@ module.exports = {
         const query = inter.options.getString('song');
 
         const channel = inter.member.voice.channel;
-        if (!channel) return inter.editReply("Join a voice channel first.");
 
         const connection = joinVoiceChannel({
             channelId: channel.id,
