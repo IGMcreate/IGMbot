@@ -9,9 +9,8 @@ const {
 } = require('@discordjs/voice');
 
 const { spawn, execFile } = require('child_process');
-const path = require('path');
 const { deleteQueue } = require('./queueStore');
-const YTDLP = path.join(__dirname, '../yt-dlp.exe');
+const YTDLP = 'yt-dlp';
 
 class MusicQueue {
     constructor(connection) {

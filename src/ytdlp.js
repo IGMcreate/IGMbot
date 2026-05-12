@@ -1,7 +1,6 @@
 const { execFile } = require('child_process');
-const path = require('path');
 
-const YTDLP = path.join(__dirname, '../yt-dlp.exe');
+const YTDLP = 'yt-dlp';
 
 // single track
 function getStreamURL(query) {
