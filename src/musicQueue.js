@@ -9,7 +9,6 @@ const {
 } = require('@discordjs/voice');
 
 const { spawn, execFile } = require('child_process');
-const { deleteQueue } = require('./queueStore');
 const YTDLP = 'yt-dlp';
 
 class MusicQueue {

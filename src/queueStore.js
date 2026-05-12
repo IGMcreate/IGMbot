@@ -1,4 +1,3 @@
-const queue = require('../commands/music/queue');
 const MusicQueue = require('./musicQueue');
 
 const queues = new Map();
