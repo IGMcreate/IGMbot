@@ -21,7 +21,6 @@ module.exports = {
 
     async execute({ inter }) {
         const query = inter.options.getString('song');
-
         const channel = inter.member.voice.channel;
 
         const connection = joinVoiceChannel({
@@ -34,6 +33,7 @@ module.exports = {
         connection.on('debug', console.log);
 
         const queue = getQueue(channel.guild.id, connection);
+        queue.textChannel = inter.channel;
         //await queue.testYTDLP(query);
         await queue.add(query, 'end');
         // await testVoice(inter.member.voice.channel);

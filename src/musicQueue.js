@@ -16,6 +16,7 @@ class MusicQueue {
         console.log('[QUEUE] Creating MusicQueue');
 
         this.connection = connection;
+        this.textChannel = null;
 
         this.player = createAudioPlayer({
             behaviors: {
@@ -24,6 +25,7 @@ class MusicQueue {
         });
 
         this.queue = [];
+        this.history = [];
         this.current = null;
         this.playing = false;
         this.subscribed = false;
@@ -109,14 +111,12 @@ class MusicQueue {
     }
 
     async add(url, type) {
-        let guild = client.guilds.cache.get(this.connection.joinConfig.guildId);
-        let channel = guild.channels.cache.find(channel => channel.name === 'music');
 
         console.log('[QUEUE] add():', url);
         try {
             const urls = await this.getPlaylistUrls(url);
             console.log(`[QUEUE] Added ${urls.length} track(s)`);
-            channel.send(`Added ${urls.length} track(s) to the queue!`).catch(console.error);
+            this.textChannel.send(`Added ${urls.length} track(s) to the queue!`).catch(console.error);
             if (type === 'end') {
                 this.queue.push(...urls);
             } else if (type === 'start') {
@@ -143,9 +143,6 @@ class MusicQueue {
     async next() {
         console.log('[NEXT] Called');
 
-        let guild = client.guilds.cache.get(this.connection.joinConfig.guildId);
-        let channel = guild.channels.cache.find(channel => channel.name === 'music');
-
         if (this.queue.length === 0) {
             this.playing = false;
             this.current = null;
@@ -154,12 +151,13 @@ class MusicQueue {
         }
 
         const track = this.queue.shift();
+        this.history.push(track);
         this.current = track;
         this.playing = true;
 
         console.log('[NEXT] Playing:', track.title);
 
-        channel.send('Now playing: ' + track.title)
+        this.textChannel.send('Now playing: ' + track.title)
             .then(message => console.log(`Sent message: ${message.content}`))
             .catch(console.error);
 
@@ -176,6 +174,17 @@ class MusicQueue {
             this.player.play(resource);
         } catch (err) {
             console.error('[NEXT ERROR] Skipping:', track.title, err);
+            this.next();
+        }
+    }
+
+    back() {
+        console.log('[BACK] Called');
+        if (this.history.length > 0) {
+            for (let i = 0; i < 2; i++) {
+                const track = this.history.pop();
+                this.queue.unshift(track);
+            }
             this.next();
         }
     }
