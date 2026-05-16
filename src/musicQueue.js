@@ -9,7 +9,8 @@ const {
 } = require('@discordjs/voice');
 
 const { spawn, execFile } = require('child_process');
-const { pipeline } = require('node:stream');
+const { EmbedBuilder } = require('discord.js');
+//const { pipeline } = require('node:stream');
 const YTDLP = 'yt-dlp';
 const vol = client.config.opt.volume;
 
@@ -34,7 +35,8 @@ class MusicQueue {
         this.subscription = null;
         this.idleTimeout = null;
         this.resource = null;
-        this.volume = vol
+        this.volume = vol;
+        this.inter = null;
 
         this.player.on(AudioPlayerStatus.Idle, () => {
             console.log('[PLAYER] Idle → next()');
@@ -60,19 +62,24 @@ class MusicQueue {
         return new Promise((resolve, reject) => {
             execFile(YTDLP, [
                 '--flat-playlist',
-                '--print', '%(title)s|||%(url)s',
+                '-j',
                 '--no-abort-on-error',
                 url
             ], (err, stdout) => {
                 if (err) return reject(err);
                 //console.log(stdout);
-                const results = stdout.split('\n').map(v => v.trim()).filter(v => v && v !== 'NA|||NA');
-                const objects = results.map(line => {
-                    const [title, url] = line.split('|||');
-                    return { title, url };
+                const resultsJSON = stdout.split('\n').map(v => v.trim()).filter(v => v && v !== 'NA' && v.startsWith('{')).map(v => {
+                    const data = JSON.parse(v)
+
+                    const videoUrl = data.url || `https://youtube.com/watch?v=${data.id}`
+                    return {
+                        title: data.title || 'Unknown Track',
+                        url: videoUrl,
+                        thumbnail: data.thumbnail || `https://i.ytimg.com/vi/${data.id}/hqdefault.jpg`,
+                        duration: data.duration || 0, // In seconds
+                    };
                 });
-                if (objects.length === 1) return resolve([{ title: objects[0].title, url: url }]);
-                resolve(objects);
+                resolve(resultsJSON);
             });
         });
     }
@@ -124,23 +131,29 @@ class MusicQueue {
         return stream;
     }
 
-    async add(url, type) {
-
+    async add(url, type, inter) {
+        this.inter = inter
         console.log('[QUEUE] add():', url);
         try {
             const urls = await this.getPlaylistUrls(url);
             console.log(`[QUEUE] Added ${urls.length} track(s)`);
-            this.textChannel.send(`Added ${urls.length} track(s) to the queue!`).catch(console.error);
             if (type === 'end') {
                 this.queue.push(...urls);
             } else if (type === 'start') {
                 this.queue.unshift(...urls);
             }
 
+            urls.forEach(element => {
+                element.user = inter.user.id
+            });
+            
             this.clearIdleStop();
             if (!this.playing) {
                 this.next();
             }
+            
+            return urls
+            
         } catch (err) {
             console.error('[ADD ERROR] Failed to fetch URLs:', err);
         }
@@ -168,12 +181,27 @@ class MusicQueue {
         this.history.push(track);
         this.current = track;
         this.playing = true;
-
+        
         console.log('[NEXT] Playing:', track.title);
-
-        this.textChannel.send('Now playing: ' + track.title)
-            .then(message => console.log(`Sent message: ${message.content}`))
-            .catch(console.error);
+        
+        const user = await client.users.fetch(track.user)
+        const newSong = {
+            color: 0x2f3136,
+            title: track.title,
+            url: track.url,
+            thumbnail: {
+                url: track.thumbnail
+            },
+            author: {
+                name: 'Now playing: '// + track.title
+            },
+            timestamp: new Date().toISOString(),
+            footer: {
+                text: 'Requested by ' + user.globalName,
+                icon_url: user.displayAvatarURL(), //add 'requested by' (make it inter.user.id) to the queue object then inter.user.displayAvatarURL()
+            },
+        }
+        this.textChannel.send({ embeds: [newSong] })
 
         try {
             // Use track.url for the actual downloader
@@ -278,6 +306,10 @@ class MusicQueue {
             console.log('[volume error]' + e)
             return false
         }
+    }
+
+    createProgressBar() {
+        return "▬".repeat((14 * ((this.player.state.resource?.playbackDuration / 1000) / this.current.duration)).toFixed(0)) + ":radio_button:" + "▬".repeat(14 - (14 * ((this.player.state.resource?.playbackDuration / 1000) / this.current.duration)).toFixed(0))
     }
 }
 

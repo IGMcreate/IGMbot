@@ -10,7 +10,7 @@ module.exports = {
     description: 'Get the songs in the queue',
     voiceChannel: true,
 
-    execute({ client, inter }) {
+    async execute({ client, inter }) {
 
         try {
             const channel = inter.member.voice.channel;
@@ -27,11 +27,22 @@ module.exports = {
 
             // If there are more than 5 songs, show how many are left
             const nextSongs = songs > 5 ? `And **${songs - 5}** other song(s)...` : `In the playlist **${songs}** song(s)...`;
-
+            const user = []
             // List out the first 5 tracks
-            const trackList = tracks.slice(0, 5).map((track, i) => `**${i + 1}** - ${track.title} |  (requested by: )`);
+            const trackList = await Promise.all(tracks.slice(0, 5).map(async (track, i) => {
+                let user = client.users.cache.get(track.user)
 
-            // Create an embed to display the queue
+                if (!user) {
+                    try {
+                        user = await client.users.fetch(track.user);
+                    } catch {
+                        user = { globalName: 'Unknown User' }; // Fallback if user left or cannot be found
+                    }
+                }
+
+                return `**${i + 1}** - ${track.title} |  (requested by: ${user.globalName})`;
+            }));
+
             const embed = new EmbedBuilder()
                 .setColor('#2f3136')
                 .setThumbnail(inter.guild.iconURL({ size: 2048, dynamic: true }))

@@ -34,15 +34,12 @@ module.exports = {
 
         const queue = getQueue(channel.guild.id, connection);
         queue.textChannel = inter.channel;
-        //await queue.testYTDLP(query);
-        await queue.add(query, 'end');
-        // await testVoice(inter.member.voice.channel);
-        // return;
-
+        const currentTracks = await queue.add(query, 'end', inter);
+        
         return inter.editReply({
             embeds: [
                 new EmbedBuilder()
-                    .setAuthor({ name: `Added to queue` })
+                    .setAuthor({ name: currentTracks.length == 1 ? `Added ${currentTracks[0].title} to the queue` : `Added ${currentTracks[0].title} + ${currentTracks.length - 1} other songs to the queue` })
                     .setColor('#2f3136')
             ]
         });
