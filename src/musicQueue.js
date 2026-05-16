@@ -9,7 +9,9 @@ const {
 } = require('@discordjs/voice');
 
 const { spawn, execFile } = require('child_process');
+const { pipeline } = require('node:stream');
 const YTDLP = 'yt-dlp';
+const vol = client.config.opt.volume;
 
 class MusicQueue {
     constructor(connection) {
@@ -31,6 +33,8 @@ class MusicQueue {
         this.subscribed = false;
         this.subscription = null;
         this.idleTimeout = null;
+        this.resource = null;
+        this.volume = vol
 
         this.player.on(AudioPlayerStatus.Idle, () => {
             console.log('[PLAYER] Idle → next()');
@@ -84,27 +88,37 @@ class MusicQueue {
             url
         ]);
 
-        const ffmpeg = spawn('ffmpeg', [
-            '-i', 'pipe:0',
-            '-f', 'opus',
-            '-ar', '48000',
-            '-ac', '2',
-            'pipe:1'
-        ]);
+        // const ffmpeg = spawn('ffmpeg', [
+        //     '-i', 'pipe:0',
+        //     '-f', 'opus',
+        //     '-ar', '48000',
+        //     '-ac', '2',
+        //     'pipe:1'
+        // ]);
 
-        yt.stdout.pipe(ffmpeg.stdin);
+        // pipeline(
+        //     yt.stdout,
+        //     ffmpeg.stdin,
+        //     (err) => {
+        //         if (err && err.code !== 'ERR_STREAM_PREMATURE_CLOSE') {
+        //             console.error('[PIPELINE ERROR]', err.message);
+        //         }
+        //     }
+        // );
 
-        //yt.stderr.on('data', d => console.log('[yt-dlp]', d.toString()));
+        //yt.stdout.pipe(ffmpeg.stdin);
+
+        // yt.stderr.on('data', d => console.log('[yt-dlp]', d.toString()));
         yt.stderr.on('error', d => console.log('[yt-dlp]', d.toString()));
-        //ffmpeg.stderr.on('data', d => console.log('[ffmpeg]', d.toString()));
-        ffmpeg.stderr.on('error', d => console.log('[ffmpeg]', d.toString()));
+        // ffmpeg.stderr.on('data', d => console.log('[ffmpeg]', d.toString()));
+        //ffmpeg.stderr.on('error', d => console.log('[ffmpeg]', d.toString()));
 
-        const stream = ffmpeg.stdout;
+        const stream = yt.stdout;
 
         stream.on('close', () => {
             console.log('[STREAM] closed:', url);
             yt.kill();
-            ffmpeg.kill();
+            //ffmpeg.kill();
         });
 
         return stream;
@@ -164,14 +178,15 @@ class MusicQueue {
         try {
             // Use track.url for the actual downloader
             const stream = await this.createStream(track.url);
-            const resource = createAudioResource(stream, { inputType: StreamType.OggOpus });
+            this.resource = createAudioResource(stream, { inlineVolume: true });
+            this.resource.volume.setVolumeLogarithmic(this.volume / 100);
 
             if (!this.subscribed) {
                 this.subscription = this.connection.subscribe(this.player);
                 this.subscribed = true;
             }
 
-            this.player.play(resource);
+            this.player.play(this.resource);
         } catch (err) {
             console.error('[NEXT ERROR] Skipping:', track.title, err);
             this.next();
@@ -251,6 +266,17 @@ class MusicQueue {
             var temp = this.queue[i];
             this.queue[i] = this.queue[j];
             this.queue[j] = temp;
+        }
+    }
+
+    setVolume(volume) {
+        try {
+            this.volume = volume;
+            this.resource.volume.setVolumeLogarithmic(volume / 100);
+            return true
+        } catch (e) {
+            console.log('[volume error]' + e)
+            return false
         }
     }
 }

@@ -11,6 +11,7 @@ function getQueue(guildId, connection) {
     if (connection && queue.connection !== connection) {
         queue.connection = connection;
         queue.subscribed = false;
+        console.log("new connection")
     }
     return queue
 }

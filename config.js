@@ -13,7 +13,7 @@ module.exports = {
     },
 
     opt: {
-        maxVol: 100,
+        maxVol: 200,
         spotifyBridge: true,
         volume: 75,
         leaveOnEmpty: true,
