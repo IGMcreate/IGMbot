@@ -1,15 +1,19 @@
-module.exports = async ({ inter, queue }) => {
-    if (!queue || !queue.isPlaying()) return inter.editReply({ content: `No music currently playing... try again ? `, ephemeral: true });
+const { EmbedBuilder } = require('discord.js');
 
-    const resumed = queue.node.resume();
-    let message = `Current music ${queue.currentTrack.title} resumed `;
+module.exports = async ({ inter, queue }) => {
+    if (!queue || !queue.playing) return inter.editReply({ content: `No music currently playing... try again ? `, ephemeral: true });
+
+    const resumed = await queue.pauseState('resume');
+    let message = `Current music ${queue.current.title} resumed `;
     
     if (!resumed) {
-        queue.node.pause();
-        message = `Current music ${queue.currentTrack.title} paused `;
+        await queue.pauseState('pause');
+        message = `Current music ${queue.current.title} paused `;
     }
 
-    return inter.editReply({
-        content: message, ephemeral: true
-    });
+    const PauseEmbed = new EmbedBuilder()
+            .setAuthor({ name: resumed ? `Current music ${queue.current.title} resumed ` : `Current music ${queue.current.title} paused ` })
+            .setColor('#2f3136')
+
+    return inter.editReply({ embeds: [PauseEmbed] });
 }

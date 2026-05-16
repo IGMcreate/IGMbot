@@ -1,21 +1,19 @@
 const { EmbedBuilder } = require('discord.js')
 
 module.exports = async ({ inter, queue }) => {
-    if (!queue || !queue.isPlaying()) return inter.editReply({ content: `No music currently playing... try again ? `, ephemeral: true });
+    if (!queue || !queue.playing) return inter.editReply({ content: `No music currently playing... try again ? `, ephemeral: true });
 
     inter.member.send({
         embeds: [
             new EmbedBuilder()
                 .setColor('Red')
-                .setTitle(`:arrow_forward: ${queue.currentTrack.title}`)
-                .setURL(queue.currentTrack.url)
+                .setTitle(queue.current.title)
+                .setURL(queue.current.url)
                 .addFields(
-                    { name: ':hourglass: Duration:', value: `\`${queue.currentTrack.duration}\``, inline: true },
-                    { name: 'Song by:', value: `\`${queue.currentTrack.author}\``, inline: true },
-                    { name: 'Views :eyes:', value: `\`${Number(queue.currentTrack.views).toLocaleString()}\``, inline: true },
-                    { name: 'Song URL:', value: `\`${queue.currentTrack.url}\`` }
+                    { name: 'Duration:', value: `\`${queue.current.duration}\``, inline: true },
+                    { name: 'Song URL:', value: `\`${queue.current.url}\`` }
                 )
-                .setThumbnail(queue.currentTrack.thumbnail)
+                .setThumbnail(queue.current.thumbnail)
                 .setFooter({ text: `from the server ${inter.member.guild.name}`, iconURL: inter.member.guild.iconURL({ dynamic: false }) })
         ]
     }).then(() => {

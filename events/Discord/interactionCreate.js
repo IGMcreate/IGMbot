@@ -1,3 +1,7 @@
+const {
+    getVoiceConnection
+} = require('@discordjs/voice');
+
 const { EmbedBuilder, InteractionType } = require('discord.js');
 const { getQueue } = require('../../src/queueStore.js');
 
@@ -65,8 +69,10 @@ module.exports = async (client, inter) => {
             AccessoriesCommand.execute({ inter, client, page, playerREP, profileREP });
         }
 
-        const voiceChannel = inter.guild.members.me.voice.channel;
-        const queue = voiceChannel ? getQueue(inter.guild.id) : null;
+        const channel = inter.member.voice.channel;
+        const connection = getVoiceConnection(channel.guild.id);
+        if (!connection) return//inter.editReply({ content: `Try playing a song first :) ${inter.member}`, ephemeral: true });
+        const queue = getQueue(channel.guild.id, connection);
 
         if (file_of_button && !customId.command) {
             await inter.deferReply();

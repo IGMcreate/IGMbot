@@ -1,9 +1,15 @@
-module.exports = async ({  inter, queue }) => { 
-    if (!queue || !queue.isPlaying()) return inter.editReply({ content: `No music currently playing... try again ? `, ephemeral: true });
+const { EmbedBuilder } = require('discord.js');
 
-    if (!queue.history.previousTrack) return inter.editReply({ content: `There was no music played before ${inter.member}... try again ? `, ephemeral: true });
+module.exports = async ({ inter, queue }) => {
+    if (!queue || !queue.playing) return inter.editReply({ content: `No music currently playing... try again ? `, ephemeral: true });
 
-    await queue.history.back();
+    if (queue.history.length < 2) return inter.editReply({ content: `There was no music played before ${inter.member}... try again ? `, ephemeral: true });
 
-    inter.editReply({ content:`Playing the **previous** track `, ephemeral: true});
+    await queue.back();
+
+    const BackEmbed = new EmbedBuilder()
+        .setAuthor({ name: `Playing the previous track ` })
+        .setColor('#2f3136')
+
+    await inter.editReply({ embeds: [BackEmbed] });
 }
