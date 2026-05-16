@@ -36,7 +36,7 @@ module.exports = {
                     try {
                         user = await client.users.fetch(track.user);
                     } catch {
-                        user = { globalName: 'Unknown User' }; // Fallback if user left or cannot be found
+                        user = { globalName: 'Unknown User' };
                     }
                 }
 
