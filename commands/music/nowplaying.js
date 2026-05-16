@@ -36,7 +36,7 @@ module.exports = {
 
 
         const embed = new EmbedBuilder()
-            .setAuthor({ name: track.title, iconURL: inter.client.user.displayAvatarURL({ size: 1024, dynamic: true }) })
+            .setAuthor({ name: track.title, iconURL: inter.client.user.displayAvatarURL({ size: 1024, dynamic: true }), url: track.url })
             .setThumbnail(track.thumbnail)
             .setDescription(
                 `Volume **${volume}**%\n` +
