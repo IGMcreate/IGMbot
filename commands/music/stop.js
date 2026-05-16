@@ -17,16 +17,16 @@ module.exports = {
         if (!connection) return inter.editReply({ content: `Try playing a song first :) ${inter.member}`, ephemeral: true });
         const queue = getQueue(channel.guild.id, connection);
 
-        if (!queue) return inter.editReply({ content:`No music currently playing ${inter.member}... try again ? `, ephemeral: true });
+        if (!queue) return inter.editReply({ content: `No music currently playing ${inter.member}... try again ? `, ephemeral: true });
 
         queue.stop();
 
         const StopEmbed = new EmbedBuilder()
-        .setColor('#2f3136')
-        .setAuthor({name: `Music stopped into this server, see you next time ` })
+            .setColor('#2f3136')
+            .setAuthor({ name: `Music stopped into this server, see you next time ` })
 
 
-       return inter.editReply({ embeds: [StopEmbed] });
+        return inter.editReply({ embeds: [StopEmbed] });
 
     },
 };

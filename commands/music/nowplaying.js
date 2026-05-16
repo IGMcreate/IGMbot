@@ -17,9 +17,8 @@ module.exports = {
         const queue = getQueue(channel.guild.id, connection);
 
         const track = queue.current;
+        const duration = (Math.floor(this.current.duration / 60)).toString() + ":" + (this.current.duration % 60).toString().padStart(2, "0")
         const progress = queue.createProgressBar();
-        const duration = (Math.floor(track.duration / 60)).toString() + ":" + (track.duration % 60).toString().padStart(2, "0")
-        const playbackDuration = (Math.floor(queue.player.state.resource?.playbackDuration / 60000)).toString() + ":" + (Math.floor(queue.player.state.resource?.playbackDuration / 1000) % 60).toString().padStart(2, "0")
         const volume = queue.volume;
         const repeatModes = ['disabled', 'track', 'queue', 'autoplay'];
         const repeatMode = typeof queue.repeatMode === 'number' ? queue.repeatMode : queue.repeatMode?.mode ?? 0;
@@ -34,14 +33,13 @@ module.exports = {
             }
         }
 
-
         const embed = new EmbedBuilder()
             .setAuthor({ name: track.title, iconURL: inter.client.user.displayAvatarURL({ size: 1024, dynamic: true }), url: track.url })
             .setThumbnail(track.thumbnail)
             .setDescription(
                 `Volume **${volume}**%\n` +
                 `Duration **${duration}**\n` +
-                `Progress ${playbackDuration} **|** ${progress} **|** ${duration}\n` +
+                `Progress ${progress}\n` +
                 `Loop mode **${repeatModes[repeatMode]}**\n` +
                 `Added by ${user.globalName}`
             )
@@ -76,6 +74,6 @@ module.exports = {
 
         const row = new ActionRowBuilder().addComponents(volumedown, saveButton, resumepause, loop, volumeup);
 
-        await inter.editReply({ embeds: [embed]/*, components: [row] */ });
+        await inter.editReply({ embeds: [embed], components: [row] });
     },
 };

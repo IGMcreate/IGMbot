@@ -27,7 +27,7 @@ module.exports = {
 
             // If there are more than 5 songs, show how many are left
             const nextSongs = songs > 5 ? `And **${songs - 5}** other song(s)...` : `In the playlist **${songs}** song(s)...`;
-            const user = []
+            const user = [];
             // List out the first 5 tracks
             const trackList = await Promise.all(tracks.slice(0, 5).map(async (track, i) => {
                 let user = client.users.cache.get(track.user)

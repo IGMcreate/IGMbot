@@ -16,8 +16,7 @@ module.exports = {
         if (!connection) return inter.editReply({ content: `Try playing a song first :) ${inter.member}`, ephemeral: true });
         const queue = getQueue(channel.guild.id, connection);
 
-        if (!queue.history) return inter.editReply({ content: `No music history ${inter.member}... try again ? `, ephemeral: true });
-        //console.log(queue.history);
+        if (queue.history.length < 2) return inter.editReply({ content: `No music history ${inter.member}... try again ? `, ephemeral: true });
         await queue.back();
 
         const BackEmbed = new EmbedBuilder()

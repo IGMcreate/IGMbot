@@ -37,7 +37,7 @@ readdirSync('./commands/').forEach(dirs => {
     };
 });
 
-client.on(Events.ClientReady, (readyClient) => {
+client.once(Events.ClientReady, (readyClient) => {
     console.log(`Logged in as ${client.user.tag}!`);
     if (client.config.app.global) {
         client.application.commands.set(CommandsArray)

@@ -37,6 +37,7 @@ class MusicQueue {
         this.resource = null;
         this.volume = vol;
         this.inter = null;
+        this.paused = false;
 
         this.player.on(AudioPlayerStatus.Idle, () => {
             console.log('[PLAYER] Idle → next()');
@@ -259,10 +260,12 @@ class MusicQueue {
             if (type === 'pause') {
                 console.log('[QUEUE] pause');
                 //this.player.pause();
+                this.paused = true;
                 resolve(this.player.pause());
             } else if (type === 'resume') {
                 console.log('[QUEUE] resume');
                 //this.player.resume();
+                this.paused = false;
                 resolve(this.player.unpause());
             } else {
                 reject('invalid type');
@@ -309,7 +312,10 @@ class MusicQueue {
     }
 
     createProgressBar() {
-        return "▬".repeat((14 * ((this.player.state.resource?.playbackDuration / 1000) / this.current.duration)).toFixed(0)) + ":radio_button:" + "▬".repeat(14 - (14 * ((this.player.state.resource?.playbackDuration / 1000) / this.current.duration)).toFixed(0))
+        const duration = (Math.floor(this.current.duration / 60)).toString() + ":" + (this.current.duration % 60).toString().padStart(2, "0")
+        const playbackDuration = (Math.floor(this.player.state.resource?.playbackDuration / 60000)).toString() + ":" + (Math.floor(this.player.state.resource?.playbackDuration / 1000) % 60).toString().padStart(2, "0")
+
+        return playbackDuration + " **|** " + "▬".repeat((14 * ((this.player.state.resource?.playbackDuration / 1000) / this.current.duration)).toFixed(0)) + ":radio_button:" + "▬".repeat(14 - (14 * ((this.player.state.resource?.playbackDuration / 1000) / this.current.duration)).toFixed(0)) + " **|** " + duration
     }
 }
 
