@@ -17,7 +17,7 @@ module.exports = {
         const queue = getQueue(channel.guild.id, connection);
 
         const track = queue.current;
-        const duration = (Math.floor(this.current.duration / 60)).toString() + ":" + (this.current.duration % 60).toString().padStart(2, "0")
+        const duration = (Math.floor(track.duration / 60)).toString() + ":" + (track.duration % 60).toString().padStart(2, "0")
         const progress = queue.createProgressBar();
         const volume = queue.volume;
         const repeatModes = ['disabled', 'track', 'queue', 'autoplay'];
