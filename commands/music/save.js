@@ -2,7 +2,7 @@ const {
     getVoiceConnection
 } = require('@discordjs/voice');
 
-const { ApplicationCommandOptionType, EmbedBuilder } = require('discord.js');
+const { EmbedBuilder } = require('discord.js');
 const { getQueue } = require('../../src/queueStore');
 
 module.exports = {
@@ -27,6 +27,8 @@ module.exports = {
                     .setURL(queue.current.url)
                     .addFields(
                         { name: 'Duration:', value: `\`${duration}\``, inline: true },
+                        { name: 'Song by:', value: `\`${queue.current.author}\``, inline: true },
+                        //{ name: 'Views :eyes:', value: `\`${Number(queue.currentTrack.views).toLocaleString()}\``, inline: true },
                         { name: 'Song URL:', value: `\`${queue.current.url}\`` }
                     )
                     .setThumbnail(queue.current.thumbnail)
