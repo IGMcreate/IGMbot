@@ -2,7 +2,8 @@ const { EmbedBuilder } = require('discord.js')
 
 module.exports = async ({ inter, queue }) => {
     if (!queue || !queue.playing) return inter.editReply({ content: `No music currently playing... try again ? `, ephemeral: true });
-
+    const duration = (Math.floor(queue.current.duration / 60)).toString() + ":" + (queue.current.duration % 60).toString().padStart(2, "0")
+    
     inter.member.send({
         embeds: [
             new EmbedBuilder()
@@ -10,7 +11,7 @@ module.exports = async ({ inter, queue }) => {
                 .setTitle(queue.current.title)
                 .setURL(queue.current.url)
                 .addFields(
-                    { name: 'Duration:', value: `\`${queue.current.duration}\``, inline: true },
+                    { name: 'Duration:', value: `\`${duration}\``, inline: true },
                     { name: 'Song URL:', value: `\`${queue.current.url}\`` }
                 )
                 .setThumbnail(queue.current.thumbnail)
