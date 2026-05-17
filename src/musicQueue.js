@@ -38,6 +38,7 @@ class MusicQueue {
         this.volume = vol;
         this.inter = null;
         this.paused = false;
+        this.repeatMode = 'typeOff';
 
         this.player.on(AudioPlayerStatus.Idle, () => {
             console.log('[PLAYER] Idle → next()');
@@ -71,13 +72,14 @@ class MusicQueue {
                 //console.log(stdout);
                 const resultsJSON = stdout.split('\n').map(v => v.trim()).filter(v => v && v !== 'NA' && v.startsWith('{')).map(v => {
                     const data = JSON.parse(v)
-
+                    //console.log(data)
                     const videoUrl = data.url || `https://youtube.com/watch?v=${data.id}`
                     return {
                         title: data.title || 'Unknown Track',
                         url: videoUrl,
                         thumbnail: data.thumbnail || `https://i.ytimg.com/vi/${data.id}/hqdefault.jpg`,
                         duration: data.duration || 0, // In seconds
+                        author: (data.channel || data.uploader)?.trim() || undefined,
                     };
                 });
                 resolve(resultsJSON);
@@ -178,6 +180,21 @@ class MusicQueue {
             return;
         }
 
+        switch (this.repeatMode) {
+            case 'typeOff':
+                break;
+            case 'typeTrack':
+                if (this.current) {
+                    this.queue.unshift(this.current);
+                    this.history.pop();
+                }
+                break;
+            case 'typeQueue':
+                if (this.current) {
+                    this.queue.push(this.current);
+                }
+                break;
+        }
         const track = this.queue.shift();
         this.history.push(track);
         this.current = track;
@@ -237,7 +254,7 @@ class MusicQueue {
         console.log('[QUEUE] skip');
         this.next();
     }
-    
+
     stop() {
         console.log('[QUEUE] stop');
         this.clearIdleStop();
