@@ -6,3 +6,4 @@ node_modules/
 *.lnk
 .env
 package-lock.json
+recordings/

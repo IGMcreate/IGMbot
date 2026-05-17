@@ -147,14 +147,14 @@ class MusicQueue {
             urls.forEach(element => {
                 element.user = inter.user.id
             });
-            
+
             this.clearIdleStop();
             if (!this.playing) {
                 this.next();
             }
-            
+
             return urls
-            
+
         } catch (err) {
             console.error('[ADD ERROR] Failed to fetch URLs:', err);
         }
@@ -182,9 +182,9 @@ class MusicQueue {
         this.history.push(track);
         this.current = track;
         this.playing = true;
-        
+
         console.log('[NEXT] Playing:', track.title);
-        
+
         const user = await client.users.fetch(track.user)
         const newSong = {
             color: 0x2f3136,
@@ -237,21 +237,45 @@ class MusicQueue {
         console.log('[QUEUE] skip');
         this.next();
     }
-
-    scheduleIdleStop() {
+    
+    stop() {
+        console.log('[QUEUE] stop');
         this.clearIdleStop();
-        this.idleTimeout = setTimeout(() => {
-            if (this.player.state.status === AudioPlayerStatus.Idle && this.queue.length === 0) {
-                console.log('[QUEUE] Idle timeout reached, stopping queue');
-                this.stop();
-            }
-        }, 30_000);
+        this.queue = [];
+        this.playing = false;
+        this.current = null;
+
+        if (this.subscription) {
+            this.subscription.unsubscribe();
+            this.subscription = null;
+        }
+
+        this.subscribed = false;
+        this.player.stop();
+        this.connection.destroy();
     }
 
-    clearIdleStop() {
-        if (this.idleTimeout) {
-            clearTimeout(this.idleTimeout);
-            this.idleTimeout = null;
+    removeTrack(track) {
+        const index = this.queue.indexOf(track);
+        if (index !== -1) {
+            this.queue.splice(index, 1);
+        }
+    }
+
+    jump(track) {
+        const index = this.queue.indexOf(track);
+        if (index !== -1) {
+            this.queue.splice(index, 1);
+            this.queue.unshift(track);
+            this.next();
+        }
+    }
+
+    skipTo(track) {
+        const index = this.queue.indexOf(track);
+        if (index !== -1) {
+            this.queue.splice(0, index);
+            this.next();
         }
     }
 
@@ -274,22 +298,6 @@ class MusicQueue {
         );
     }
 
-    stop() {
-        console.log('[QUEUE] stop');
-        this.clearIdleStop();
-        this.queue = [];
-        this.playing = false;
-        this.current = null;
-
-        if (this.subscription) {
-            this.subscription.unsubscribe();
-            this.subscription = null;
-        }
-
-        this.subscribed = false;
-        this.player.stop();
-        this.connection.destroy();
-    }
 
     shuffle() {
         for (var i = this.queue.length - 1; i > 0; i--) {
@@ -308,6 +316,27 @@ class MusicQueue {
         } catch (e) {
             console.log('[volume error]' + e)
             return false
+        }
+    }
+
+    scheduleIdleStop() {
+        this.clearIdleStop();
+        this.idleTimeout = setTimeout(() => {
+            if (this.player.state.status === AudioPlayerStatus.Idle && this.queue.length === 0) {
+                console.log('[QUEUE] Idle timeout reached, stopping queue');
+                try {
+                    this.stop();
+                } catch (e) {
+                    console.error('[QUEUE] Error stopping queue:', e);
+                }
+            }
+        }, 30_000);
+    }
+
+    clearIdleStop() {
+        if (this.idleTimeout) {
+            clearTimeout(this.idleTimeout);
+            this.idleTimeout = null;
         }
     }
 
