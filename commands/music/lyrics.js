@@ -2,7 +2,7 @@ const {
     getVoiceConnection
 } = require('@discordjs/voice');
 
-const { ApplicationCommandOptionType, EmbedBuilder } = require('discord.js');
+const { EmbedBuilder } = require('discord.js');
 const { getQueue } = require('../../src/queueStore');
 
 module.exports = {
@@ -21,8 +21,7 @@ module.exports = {
         try {
 
             const search = await genius.songs.search(queue.current.title);
-
-            const song = search[0]//.find(song => song.artist.name.toLowerCase() === queue.current.author.toLowerCase());
+            const song = search.find(song => song.artist.name.toLowerCase() === queue.current.author.toLowerCase()) || search[0];
             if (!song) return inter.editReply({ content: `No lyrics found for ${queue.current.title}... try again ? `, ephemeral: true });
             const lyrics = await song.lyrics();
             const embeds = [];
