@@ -20,8 +20,7 @@ module.exports = {
         const duration = (Math.floor(track.duration / 60)).toString() + ":" + (track.duration % 60).toString().padStart(2, "0")
         const progress = queue.createProgressBar();
         const volume = queue.volume;
-        const repeatModes = ['disabled', 'track', 'queue', 'autoplay'];
-        const repeatMode = typeof queue.repeatMode === 'number' ? queue.repeatMode : queue.repeatMode?.mode ?? 0;
+        const repeatMode = queue.repeatMode === 'typeQueue' ? 'Queue' : queue.repeatMode === 'typeTrack' ? 'Song' : 'Disabled';
 
         let user = client.users.cache.get(track.user)
 
@@ -40,7 +39,7 @@ module.exports = {
                 `Volume **${volume}**%\n` +
                 `Duration **${duration}**\n` +
                 `Progress ${progress}\n` +
-                `Loop mode **${repeatModes[repeatMode]}**\n` +
+                `Loop mode **${repeatMode}**\n` +
                 `Added by ${user.globalName}`
             )
             .setFooter({ text: `Requested by ${inter.member.displayName}`, iconURL: inter.member.displayAvatarURL({ dynamic: true }) })

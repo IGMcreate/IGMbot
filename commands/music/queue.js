@@ -42,7 +42,7 @@ module.exports = {
 
                 return `**${i + 1}** - ${track.title} |  (requested by: ${user.globalName})`;
             }));
-
+            const loopmode = queue.repeatMode === 'typeQueue' ? 'Queue' : queue.repeatMode === 'typeTrack' ? 'Song' : 'Disabled';
             const embed = new EmbedBuilder()
                 .setColor('#2f3136')
                 .setThumbnail(inter.guild.iconURL({ size: 2048, dynamic: true }))
@@ -50,7 +50,7 @@ module.exports = {
                     name: `Server queue - ${inter.guild.name}`,
                     iconURL: client.user.displayAvatarURL({ size: 1024, dynamic: true }),
                 })
-                .setDescription(`Current track: **${queue.current.title}**\n\n${trackList.join('\n')}\n\n${nextSongs}`)
+                .setDescription(`Current track: **${queue.current.title}**\nLoop mode: **${loopmode}**\n\n${trackList.join('\n')}\n\n${nextSongs}`)
                 .setTimestamp()
                 .setFooter({ text: `Requested by ${inter.member.displayName}`, iconURL: inter.member.displayAvatarURL({ dynamic: true }) });
 
