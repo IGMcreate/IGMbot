@@ -24,6 +24,10 @@ module.exports = {
 
         const channel = inter.member.voice.channel;
         if (!channel) return inter.editReply("Join a voice channel first.");
+        const isURL = query.startsWith('http://') || query.startsWith('https://');
+        if (!isURL) {
+            return inter.editReply({ content: 'Only URLs are supported at this time.', ephemeral: true });
+        }
 
         const connection = joinVoiceChannel({
             channelId: channel.id,
@@ -36,7 +40,7 @@ module.exports = {
 
         const queue = getQueue(channel.guild.id, connection);
         //await queue.testYTDLP(query);
-        await queue.add(query, 'start');
+        await queue.add(query, 'start', inter);
         // await testVoice(inter.member.voice.channel);
         // return;
 

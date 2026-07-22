@@ -22,7 +22,10 @@ module.exports = {
     async execute({ inter }) {
         const query = inter.options.getString('song');
         const channel = inter.member.voice.channel;
-
+        const isURL = query.startsWith('http://') || query.startsWith('https://');
+        if (!isURL) {
+            return inter.editReply({ content: 'Only URLs are supported at this time.', ephemeral: true });
+        }
         const connection = joinVoiceChannel({
             channelId: channel.id,
             guildId: channel.guild.id,
