@@ -10,7 +10,7 @@ const {
 
 const { spawn, execFile } = require('child_process');
 const { EmbedBuilder } = require('discord.js');
-//const { pipeline } = require('node:stream');
+const { pipeline, PassThrough } = require('stream');
 const YTDLP = 'yt-dlp';
 const vol = client.config.opt.volume;
 
@@ -38,6 +38,7 @@ class MusicQueue {
         this.volume = vol;
         this.inter = null;
         this.paused = false;
+        this.msSeek = 0;
         this.repeatMode = 'typeOff';
 
         this.player.on(AudioPlayerStatus.Idle, () => {
@@ -62,35 +63,40 @@ class MusicQueue {
 
     async getPlaylistUrls(url) {
         return new Promise((resolve, reject) => {
-            execFile(YTDLP, [
+            execFile(YTDLP, [ //convert to spawn to avoid maxBuffer issues with large playlists
                 '--flat-playlist',
+                '--match-filters', "title!=Private video:title!=Deleted video",
                 '-j',
                 '--no-abort-on-error',
                 url
-            ], (err, stdout) => {
-                if (err) return reject(err);
-                //console.log(stdout);
-                const resultsJSON = stdout.split('\n').map(v => v.trim()).filter(v => v && v !== 'NA' && v.startsWith('{')).map(v => {
-                    const data = JSON.parse(v)
-                    //console.log(data)
-                    const videoUrl = data.url || `https://youtube.com/watch?v=${data.id}`
-                    return {
-                        title: data.title || 'Unknown Track',
-                        url: videoUrl,
-                        thumbnail: data.thumbnail || `https://i.ytimg.com/vi/${data.id}/hqdefault.jpg`,
-                        duration: data.duration || 0, // In seconds
-                        author: (data.channel || data.uploader)?.trim() || undefined,
-                    };
+            ], { maxBuffer: 1024 * 1024 * 2 },
+                (err, stdout) => {
+                    if (err) return reject(err);
+                    //console.log(stdout);
+                    const resultsJSON = stdout.split('\n').map(v => v.trim()).filter(v => v && v !== 'NA' && v.startsWith('{')).map(v => {
+                        const data = JSON.parse(v)
+                        //console.log(data)
+                        const videoUrl = data.url || `https://youtube.com/watch?v=${data.id}`
+                        return {
+                            title: data.title || 'Unknown Track',
+                            url: videoUrl,
+                            thumbnail: data.thumbnail || `https://i.ytimg.com/vi/${data.id}/hqdefault.jpg`,
+                            duration: data.duration || 0, // In seconds
+                            author: (data.channel || data.uploader)?.trim() || undefined,
+                        };
+                    });
+                    resolve(resultsJSON);
                 });
-                resolve(resultsJSON);
-            });
         });
     }
 
-    async createStream(url) {
+    async createStream(url, startTime = "00:00:00") {
         console.log('[STREAM] starting:', url);
 
+        const outputStream = new PassThrough();
+
         const yt = spawn(YTDLP, [
+            '--download-sections', `*${startTime}-inf`,
             '-f',
             'bestaudio',
             '-o',
@@ -98,40 +104,56 @@ class MusicQueue {
             url
         ]);
 
-        // const ffmpeg = spawn('ffmpeg', [
-        //     '-i', 'pipe:0',
-        //     '-f', 'opus',
-        //     '-ar', '48000',
-        //     '-ac', '2',
-        //     'pipe:1'
-        // ]);
+        const ffmpeg = spawn('ffmpeg', [
+            '-i', 'pipe:0',
+            '-c:a', 'libopus',
+            '-f', 'ogg',
+            '-ar', '48000',
+            '-ac', '2',
+            'pipe:1'
+        ]);
 
-        // pipeline(
-        //     yt.stdout,
-        //     ffmpeg.stdin,
-        //     (err) => {
-        //         if (err && err.code !== 'ERR_STREAM_PREMATURE_CLOSE') {
-        //             console.error('[PIPELINE ERROR]', err.message);
-        //         }
-        //     }
-        // );
-
-        //yt.stdout.pipe(ffmpeg.stdin);
-
-        // yt.stderr.on('data', d => console.log('[yt-dlp]', d.toString()));
-        yt.stderr.on('error', d => console.log('[yt-dlp]', d.toString()));
-        // ffmpeg.stderr.on('data', d => console.log('[ffmpeg]', d.toString()));
-        //ffmpeg.stderr.on('error', d => console.log('[ffmpeg]', d.toString()));
-
-        const stream = yt.stdout;
-
-        stream.on('close', () => {
-            console.log('[STREAM] closed:', url);
-            yt.kill();
-            //ffmpeg.kill();
+        yt.stdout.on('error', (err) => {
+            if (err.code === 'EPIPE') {
+                console.warn('[STREAM] Safe Warning: EPIPE caught. ffmpeg stopped reading yt-dlp.');
+            } else {
+                console.error('[yt.stdout ERROR]', err);
+            }
         });
 
-        return stream;
+        ffmpeg.stdin.on('error', (err) => {
+            if (err.code === 'EPIPE' || err.code === 'EOF') {
+                console.warn('[STREAM] Safe Warning: EPIPE caught on ffmpeg stdin.');
+            } else {
+                console.error('[ffmpeg.stdin ERROR]', err);
+            }
+        });
+
+        yt.stdout.pipe(ffmpeg.stdin);
+        ffmpeg.stdout.pipe(outputStream);
+
+        yt.stderr.on('error', (data) => console.error(`[yt-dlp CLI]: ${data}`));
+        ffmpeg.stderr.on('error', (data) => console.error(`[ffmpeg CLI]: ${data}`));
+
+        yt.on('error', (err) => {
+            console.error('[yt-dlp ERROR]', err);
+            outputStream.destroy();
+        });
+        ffmpeg.on('error', (err) => {
+            console.error('[ffmpeg ERROR]', err);
+            outputStream.destroy();
+        });
+
+        yt.stdout.on('error', () => { });
+        ffmpeg.stdout.on('error', () => { });
+
+        outputStream.on('close', () => {
+            console.log('[STREAM] closed:', url);
+            yt.kill();
+            ffmpeg.kill();
+        });
+
+        return outputStream;
     }
 
     async add(url, type, inter) {
@@ -170,7 +192,7 @@ class MusicQueue {
         // }
     }
 
-    async next() {
+    async next(seek = false, time = "00:00:00") {
         console.log('[NEXT] Called');
 
         if (this.queue.length === 0) {
@@ -180,21 +202,31 @@ class MusicQueue {
             return;
         }
 
-        switch (this.repeatMode) {
-            case 'typeOff':
-                break;
-            case 'typeTrack':
-                if (this.current) {
-                    this.queue.unshift(this.current);
-                    this.history.pop();
-                }
-                break;
-            case 'typeQueue':
-                if (this.current) {
-                    this.queue.push(this.current);
-                }
-                break;
+        if (seek === true && this.current) {
+            this.queue.unshift(this.current);
+            this.history.pop();
+            this.msSeek = time.split(':').reduce((v, t) => (v * 60) + Number(t), 0) * 1000;
+        } else {
+            switch (this.repeatMode) {
+                case 'typeOff':
+                    this.msSeek = 0;
+                    break;
+                case 'typeTrack':
+                    if (this.current) {
+                        this.queue.unshift(this.current);
+                        this.history.pop();
+                        this.msSeek = 0;
+                    }
+                    break;
+                case 'typeQueue':
+                    if (this.current) {
+                        this.queue.push(this.current);
+                        this.msSeek = 0;
+                    }
+                    break;
+            }
         }
+
         const track = this.queue.shift();
         this.history.push(track);
         this.current = track;
@@ -211,20 +243,19 @@ class MusicQueue {
                 url: track.thumbnail
             },
             author: {
-                name: 'Now playing: '// + track.title
+                name: 'Now playing: '
             },
             timestamp: new Date().toISOString(),
             footer: {
                 text: 'Requested by ' + user.globalName,
-                icon_url: user.displayAvatarURL(), //add 'requested by' (make it inter.user.id) to the queue object then inter.user.displayAvatarURL()
+                icon_url: user.displayAvatarURL(),
             },
         }
         this.textChannel.send({ embeds: [newSong] })
 
         try {
-            // Use track.url for the actual downloader
-            const stream = await this.createStream(track.url);
-            this.resource = createAudioResource(stream, { inlineVolume: true });
+            const stream = await this.createStream(track.url, time);
+            this.resource = createAudioResource(stream, { inlineVolume: true, inputType: StreamType.OggOpus });
             this.resource.volume.setVolumeLogarithmic(this.volume / 100);
 
             if (!this.subscribed) {
@@ -358,10 +389,11 @@ class MusicQueue {
     }
 
     createProgressBar() {
-        const duration = (Math.floor(this.current.duration / 60)).toString() + ":" + (this.current.duration % 60).toString().padStart(2, "0")
-        const playbackDuration = (Math.floor(this.player.state.resource?.playbackDuration / 60000)).toString() + ":" + (Math.floor(this.player.state.resource?.playbackDuration / 1000) % 60).toString().padStart(2, "0")
+        const duration = (Math.floor(this.current.duration / 60)).toString() + ":" + (this.current.duration % 60).toString().padStart(2, "0");
+        const totalms = this.player.state.resource?.playbackDuration + this.msSeek;
+        const playbackDuration = (Math.floor(totalms / 60000)).toString() + ":" + (Math.floor(totalms / 1000) % 60).toString().padStart(2, "0");
 
-        return playbackDuration + " **|** " + "▬".repeat((14 * ((this.player.state.resource?.playbackDuration / 1000) / this.current.duration)).toFixed(0)) + ":radio_button:" + "▬".repeat(14 - (14 * ((this.player.state.resource?.playbackDuration / 1000) / this.current.duration)).toFixed(0)) + " **|** " + duration
+        return playbackDuration + " **|** " + "▬".repeat((14 * ((totalms / 1000) / this.current.duration)).toFixed(0)) + ":radio_button:" + "▬".repeat(14 - (14 * ((totalms / 1000) / this.current.duration)).toFixed(0)) + " **|** " + duration
     }
 }
 
